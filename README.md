@@ -1,2 +1,2 @@
 # mysql-course
-Mysql homeworms
+Mysql homeworks
