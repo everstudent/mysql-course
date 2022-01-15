@@ -2,18 +2,21 @@
 
 -- user_id = 11 (who we search most active messaging friend for)
 -- logic:
--- find all approved friends of 11
+-- first find all approved friends of 11 user
 -- count all messages for each friend
 -- sort by most messages
 -- limit to 1 row
 
-SELECT IF(m.from_user_id = 11, m.to_user_id, m.from_user_id) most_active_friend_id, count(distinct m.id) messages
-FROM friend_requests fr
-JOIN messages m ON (m.from_user_id = 11 OR m.to_user_id = 11)
-WHERE (fr.initiator_user_id = 11 OR fr.target_user_id = 11) AND fr.status = 'approved'
+SELECT IF(from_user_id = 11, to_user_id, from_user_id) most_active_friend_id, count(*) messages
+FROM messages
+WHERE IF(to_user_id = 11, from_user_id, to_user_id) IN (
+  (SELECT target_user_id FROM friend_requests WHERE initiator_user_id = 11 AND status = 'approved') UNION (SELECT initiator_user_id FROM friend_requests WHERE
+  target_user_id = 11 AND status = 'approved')
+)
+AND (to_user_id = 11 OR from_user_id = 11)
 GROUP BY most_active_friend_id
 ORDER BY messages DESC
-LIMIT 1;
+LIMIT 1
 
 -- +-----------------------+----------+
 -- | most_active_friend_id | messages |
@@ -26,14 +29,17 @@ LIMIT 1;
 -- 2.
 
 -- logic:
--- joining users and profiles to filter users < than 11 years old
--- joining media and media_likes to count() all likes received by media owned by selected users
+-- getting profiles to filter users < than 11 years old
+-- getting media to filter by media owners
+-- counting all resulting likes
 
 SELECT count(*)
-FROM users u
-JOIN profiles p ON (p.user_id = u.id AND TIMESTAMPDIFF(YEAR, p.birthday, CURDATE()) < 11)
-JOIN media m ON (m.owner_id = u.id)
-JOIN media_likes ml ON (m.id = ml.media_id);
+FROM media_likes
+WHERE (
+  media_id IN (SELECT id FROM media WHERE owner_id IN (
+    SELECT user_id FROM profiles WHERE TIMESTAMPDIFF(YEAR, birthday, CURDATE()) < 11
+  ) )
+)
 
 -- +----------+
 -- | count(*) |
@@ -46,16 +52,15 @@ JOIN media_likes ml ON (m.id = ml.media_id);
 -- 3.
 
 -- logic:
--- join users and profiles to aggregate by gender
--- join media_likes to count all likes set by users
--- group by gender
+-- first select  gender and likes count for each user
+-- then aggregate it to get summary of likes by gender
 -- sort by likes (descending) to see top gender
 
-SELECT p.gender, count(*) likes
-FROM users u
-JOIN profiles p ON (p.user_id = u.id)
-JOIN media_likes ml ON (ml.user_id = u.id)
-GROUP BY p.gender
+SELECT gender, SUM(likes) likes FROM (
+  SELECT gender, (SELECT count(*) FROM media_likes WHERE user_id = profiles.user_id) likes
+  FROM profiles
+) likes_stats
+GROUP BY gender
 ORDER BY likes DESC
 
 -- +--------+-------+
