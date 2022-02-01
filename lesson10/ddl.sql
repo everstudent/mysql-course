@@ -1,3 +1,7 @@
+CREATE DATABASE IF NOT EXISTS ecomtrack;
+USE ecomtrack;
+
+
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
