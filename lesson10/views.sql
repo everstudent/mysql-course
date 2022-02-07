@@ -8,7 +8,7 @@ LEFT JOIN events e ON (
   e.type = (SELECT id FROM event_types WHERE name = 'view_product') AND
   e.at > NOW() - INTERVAL 30 DAY
 )
-GROUP BY p.id
+GROUP BY p.id;
 
 -- sample
 SELECT * FROM monthly_product_views WHERE id = 10;
@@ -29,7 +29,7 @@ LEFT JOIN events en ON (
   en.type = (SELECT id FROM event_types WHERE name = 'checkout_order')
 )
 WHERE en.id IS NULL
-GROUP BY o.id
+GROUP BY o.id;
 
 -- sample
 SELECT * FROM abandoned_orders WHERE created_at > NOW() - INTERVAL 15 DAY;
